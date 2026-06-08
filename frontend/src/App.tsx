@@ -6,6 +6,8 @@ import RegisterPage from './pages/RegisterPage';
 import CollectionPage from './pages/CollectionPage';
 import ComparePage from './pages/ComparePage';
 import AdminPage from './pages/AdminPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -61,6 +63,8 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="*" element={<Navigate to={user ? '/coleccion' : '/login'} replace />} />
     </Routes>

@@ -84,6 +84,11 @@ export default function LoginPage() {
               Registrate
             </Link>
           </p>
+          <p className="text-center text-sm">
+            <Link to="/forgot-password" className="text-gray-400 hover:text-panini-blue hover:underline">
+              Olvidé mi contraseña
+            </Link>
+          </p>
         </form>
       </div>
     </div>

@@ -29,6 +29,14 @@ function initSchema(db) {
       quantity INTEGER NOT NULL DEFAULT 1 CHECK(quantity > 0),
       PRIMARY KEY (user_id, sticker_id)
     );
+
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE,
+      expires_at DATETIME NOT NULL,
+      used INTEGER NOT NULL DEFAULT 0
+    );
   `);
 }
 
