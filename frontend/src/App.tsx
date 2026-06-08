@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CollectionPage from './pages/CollectionPage';
 import ComparePage from './pages/ComparePage';
+import AdminPage from './pages/AdminPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -60,6 +61,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route path="/admin" element={<AdminPage />} />
       <Route path="*" element={<Navigate to={user ? '/coleccion' : '/login'} replace />} />
     </Routes>
   );

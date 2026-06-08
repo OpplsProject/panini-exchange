@@ -6,6 +6,7 @@ const { getDb } = require('./db');
 const authRoutes = require('./routes/auth');
 const stickerRoutes = require('./routes/stickers');
 const userRoutes = require('./routes/users');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,6 +27,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/stickers', stickerRoutes);
 app.use('/api/users', userRoutes);
 app.get('/api/health', (req, res) => res.json({ ok: true }));
+app.use('/api/admin', adminRoutes);
 
 // In production, all non-API routes go to React
 if (IS_PROD) {
