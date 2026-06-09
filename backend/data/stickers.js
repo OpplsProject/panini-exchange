@@ -109,8 +109,8 @@ function generateStickers() {
       const code = `${team.code}-${n}`;
       let type = 'player';
       let name = `${team.code} ${n}`;
-      if (n === 1) { type = 'badge'; name = `Escudo ${team.name}`; }
-      if (n === 2) { type = 'squad'; name = `Foto Equipo ${team.name}`; }
+      if (n === 1)  { type = 'badge'; name = `Escudo ${team.name}`; }
+      if (n === 13) { type = 'squad'; name = `Foto Equipo ${team.name}`; }
 
       stickers.push({
         id: id++,
