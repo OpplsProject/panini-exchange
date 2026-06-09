@@ -58,7 +58,7 @@ export default function StickerCard({ sticker, quantity, onIncrement, onDecremen
         <div className="text-xs font-bold text-gray-800 leading-tight truncate" title={sticker.name}>
           {sticker.name}
         </div>
-        <div className="text-xs text-gray-500 font-mono">#{sticker.number}</div>
+        <div className="text-xs text-gray-500 font-mono">{sticker.number}</div>
         <span className={`inline-block text-xs px-1 rounded mt-0.5 font-bold ${TYPE_COLORS[sticker.type]}`}>
           {TYPE_LABELS[sticker.type]}
         </span>

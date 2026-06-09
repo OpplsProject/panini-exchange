@@ -1,5 +1,6 @@
 export interface Sticker {
   id: number;
+  code: string;
   number: string;
   team: string;
   teamName: string;

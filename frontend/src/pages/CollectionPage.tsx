@@ -61,7 +61,7 @@ export default function CollectionPage() {
   const filteredStickers = stickers.filter(s => {
     const qty = collection[s.id] || 0;
     if (selectedTeam !== 'all' && s.team !== selectedTeam) return false;
-    if (search && !s.name.toLowerCase().includes(search.toLowerCase()) && !s.number.includes(search)) return false;
+    if (search && !s.name.toLowerCase().includes(search.toLowerCase()) && !s.number.toLowerCase().includes(search.toLowerCase()) && !s.code.toLowerCase().includes(search.toLowerCase())) return false;
     if (filter === 'tengo') return qty > 0;
     if (filter === 'me_faltan') return qty === 0;
     if (filter === 'repetidas') return qty >= 2;
