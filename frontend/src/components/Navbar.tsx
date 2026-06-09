@@ -51,6 +51,9 @@ export default function Navbar() {
               <Link to="/comparar" className={linkClass('/comparar')}>
                 Intercambiar
               </Link>
+              <Link to="/repetidas" className={linkClass('/repetidas')}>
+                Repetidas
+              </Link>
               <Link to="/mensajes" className={`relative ${linkClass('/mensajes')}`}>
                 Mensajes
                 {unread > 0 && (

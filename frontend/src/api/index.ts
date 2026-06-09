@@ -89,4 +89,17 @@ export const api = {
       body: JSON.stringify({ content }),
     });
   },
+
+  searchStickerSuggestions(q: string) {
+    return request<Sticker[]>(`/search/stickers?q=${encodeURIComponent(q)}`);
+  },
+
+  searchDuplicates(stickerId: number, province?: string, locality?: string) {
+    const params = new URLSearchParams({ stickerId: String(stickerId) });
+    if (province) params.set('province', province);
+    if (locality) params.set('locality', locality);
+    return request<{ sticker: Sticker; users: { id: number; username: string; locality: string; province: string; quantity: number }[] }>(
+      `/search/duplicates?${params}`
+    );
+  },
 };
