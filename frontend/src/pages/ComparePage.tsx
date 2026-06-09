@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api';
 import type { CompareResult, Sticker } from '../types';
 import StickerCard from '../components/StickerCard';
@@ -66,6 +67,24 @@ export default function ComparePage() {
 
       {result && (
         <>
+          {/* User info + message button */}
+          <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex items-center justify-between gap-4">
+            <div>
+              <span className="font-bold text-gray-800 text-lg">@{result.otherUser.username}</span>
+              {(result.otherUser.locality || result.otherUser.province) && (
+                <span className="ml-2 text-gray-500 text-sm">
+                  📍 {[result.otherUser.locality, result.otherUser.province].filter(Boolean).join(', ')}
+                </span>
+              )}
+            </div>
+            <Link
+              to={`/mensajes?with=${result.otherUser.username}`}
+              className="bg-panini-green hover:bg-green-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-1"
+            >
+              💬 Enviar mensaje
+            </Link>
+          </div>
+
           {/* Match Summary */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <MatchCard

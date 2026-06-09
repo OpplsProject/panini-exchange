@@ -1,4 +1,4 @@
-import type { Collection, CompareResult, Sticker, Team, User } from '../types';
+import type { Collection, CompareResult, Conversation, Message, Sticker, Team, User } from '../types';
 
 const BASE = '/api';
 
@@ -58,5 +58,35 @@ export const api = {
 
   compareWith(username: string) {
     return request<CompareResult>(`/users/compare/${username}`);
+  },
+
+  getMyProfile() {
+    return request<User>('/users/me');
+  },
+
+  updateProfile(locality: string, province: string) {
+    return request<{ ok: boolean }>('/users/me/profile', {
+      method: 'PATCH',
+      body: JSON.stringify({ locality, province }),
+    });
+  },
+
+  getConversations() {
+    return request<Conversation[]>('/messages');
+  },
+
+  getUnreadCount() {
+    return request<{ count: number }>('/messages/unread');
+  },
+
+  getConversation(username: string) {
+    return request<{ contact: User; messages: Message[] }>(`/messages/${username}`);
+  },
+
+  sendMessage(username: string, content: string) {
+    return request<Message>(`/messages/${username}`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
   },
 };

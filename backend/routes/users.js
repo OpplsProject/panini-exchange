@@ -5,6 +5,26 @@ const { STICKERS } = require('../data/stickers');
 
 const router = express.Router();
 
+// Get my profile
+router.get('/me', requireAuth, (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT id, username, email, locality, province FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+  res.json(user);
+});
+
+// Update my profile (location)
+router.patch('/me/profile', requireAuth, (req, res) => {
+  const { locality, province } = req.body;
+  if (locality === undefined && province === undefined) {
+    return res.status(400).json({ error: 'Nada que actualizar' });
+  }
+  const db = getDb();
+  db.prepare('UPDATE users SET locality = ?, province = ? WHERE id = ?')
+    .run((locality || '').trim(), (province || '').trim(), req.userId);
+  res.json({ ok: true });
+});
+
 router.get('/me/stickers', requireAuth, (req, res) => {
   const db = getDb();
   const rows = db.prepare('SELECT sticker_id, quantity FROM user_stickers WHERE user_id = ?').all(req.userId);
@@ -49,7 +69,7 @@ router.get('/:username/stickers', requireAuth, (req, res) => {
 
 router.get('/compare/:username', requireAuth, (req, res) => {
   const db = getDb();
-  const otherUser = db.prepare('SELECT id, username FROM users WHERE username = ?')
+  const otherUser = db.prepare('SELECT id, username, locality, province FROM users WHERE username = ?')
     .get(req.params.username.toLowerCase());
 
   if (!otherUser) return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -74,7 +94,7 @@ router.get('/compare/:username', requireAuth, (req, res) => {
   }
 
   res.json({
-    otherUser: { username: otherUser.username },
+    otherUser: { username: otherUser.username, locality: otherUser.locality, province: otherUser.province },
     theyCanGiveMe,
     iCanGiveThem,
     matchCount: Math.min(theyCanGiveMe.length, iCanGiveThem.length),

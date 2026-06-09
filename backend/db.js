@@ -37,7 +37,20 @@ function initSchema(db) {
       expires_at DATETIME NOT NULL,
       used INTEGER NOT NULL DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      from_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      to_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      content TEXT NOT NULL,
+      read INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
+
+  // Add location columns if they don't exist yet (migration)
+  try { db.exec("ALTER TABLE users ADD COLUMN locality TEXT NOT NULL DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE users ADD COLUMN province TEXT NOT NULL DEFAULT ''"); } catch {}
 }
 
 module.exports = { getDb };

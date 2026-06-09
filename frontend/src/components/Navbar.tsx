@@ -1,10 +1,22 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useEffect, useState } from 'react';
+import { api } from '../api';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    api.getUnreadCount().then(r => setUnread(r.count)).catch(() => {});
+    const interval = setInterval(() => {
+      api.getUnreadCount().then(r => setUnread(r.count)).catch(() => {});
+    }, 30000); // poll every 30s
+    return () => clearInterval(interval);
+  }, [user]);
 
   function handleLogout() {
     logout();
@@ -17,6 +29,10 @@ export default function Navbar() {
         ? 'bg-white text-panini-blue'
         : 'text-white hover:bg-blue-700'
     }`;
+
+  const locationText = user?.locality && user?.province
+    ? `${user.locality}, ${user.province}`
+    : user?.locality || user?.province || null;
 
   return (
     <nav className="bg-panini-blue shadow-lg">
@@ -35,8 +51,23 @@ export default function Navbar() {
               <Link to="/comparar" className={linkClass('/comparar')}>
                 Intercambiar
               </Link>
+              <Link to="/mensajes" className={`relative ${linkClass('/mensajes')}`}>
+                Mensajes
+                {unread > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-panini-red text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                    {unread > 9 ? '9+' : unread}
+                  </span>
+                )}
+              </Link>
+
               <div className="flex items-center gap-2 ml-2 pl-2 border-l border-blue-400">
-                <span className="text-blue-200 text-sm hidden sm:block">@{user.username}</span>
+                <Link to="/perfil" className="hidden sm:block text-right hover:opacity-80 transition-opacity">
+                  <div className="text-blue-200 text-sm font-medium">@{user.username}</div>
+                  {locationText
+                    ? <div className="text-blue-300 text-xs">📍 {locationText}</div>
+                    : <div className="text-blue-400 text-xs italic">+ agregar ubicación</div>
+                  }
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="text-xs bg-panini-red hover:bg-red-700 text-white px-3 py-1.5 rounded-md transition-colors"
