@@ -30,9 +30,8 @@ export default function MyDuplicatesPage() {
   const [collection, setCollection] = useState<Collection>({});
   const [loadingCol, setLoadingCol] = useState(true);
   const [saving, setSaving] = useState<Set<number>>(new Set());
-  const collectionRef = useRef<Collection>({});
+  const pendingQty = useRef<Record<number, number>>({});
   const saveTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
-  useEffect(() => { collectionRef.current = collection; }, [collection]);
   const [teamFilter, setTeamFilter] = useState('all');
 
   // --- Buscar ---
@@ -50,31 +49,42 @@ export default function MyDuplicatesPage() {
 
   useEffect(() => {
     Promise.all([api.getStickers(), api.getMyCollection()])
-      .then(([s, c]) => { setStickers(s); setCollection(c); collectionRef.current = c; })
+      .then(([s, c]) => {
+        setStickers(s);
+        setCollection(c);
+        Object.assign(pendingQty.current, c);
+      })
       .finally(() => setLoadingCol(false));
   }, []);
 
   const updateSticker = useCallback((stickerId: number, delta: number) => {
+    const current = pendingQty.current[stickerId] ?? 0;
+    const newQty = Math.max(0, current + delta);
+    pendingQty.current[stickerId] = newQty;
+
     setCollection(prev => {
-      const current = prev[stickerId] || 0;
-      const newQty = Math.max(0, current + delta);
       const next = { ...prev };
       if (newQty === 0) delete next[stickerId];
       else next[stickerId] = newQty;
       return next;
     });
+
     clearTimeout(saveTimers.current[stickerId]);
     setSaving(prev => new Set(prev).add(stickerId));
+
     saveTimers.current[stickerId] = setTimeout(async () => {
-      const qty = collectionRef.current[stickerId] || 0;
+      const qty = pendingQty.current[stickerId] ?? 0;
       try {
         await api.updateSticker(stickerId, qty);
       } catch {
-        api.getMyCollection().then(c => { setCollection(c); collectionRef.current = c; });
+        api.getMyCollection().then(c => {
+          setCollection(c);
+          Object.assign(pendingQty.current, c);
+        });
       } finally {
         setSaving(prev => { const n = new Set(prev); n.delete(stickerId); return n; });
       }
-    }, 600);
+    }, 800);
   }, []);
 
   const duplicates = stickers.filter(s => (collection[s.id] || 0) >= 2);

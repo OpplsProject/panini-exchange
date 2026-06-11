@@ -17,11 +17,9 @@ export default function CollectionPage() {
   const [bulkSaving, setBulkSaving] = useState(false);
   const [search, setSearch] = useState('');
 
-  // Refs for debounced saves — avoids race conditions on rapid clicks
-  const collectionRef = useRef<Collection>({});
+  // pendingQty tracks the intended quantity per sticker for debounced saves
+  const pendingQty = useRef<Record<number, number>>({});
   const saveTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
-
-  useEffect(() => { collectionRef.current = collection; }, [collection]);
 
   useEffect(() => {
     Promise.all([api.getStickers(), api.getTeams(), api.getMyCollection()])
@@ -29,41 +27,44 @@ export default function CollectionPage() {
         setStickers(s);
         setTeams(t);
         setCollection(c);
-        collectionRef.current = c;
+        // Seed pendingQty with initial values
+        Object.assign(pendingQty.current, c);
       })
       .catch(() => setError('Error al cargar los datos'))
       .finally(() => setLoading(false));
   }, []);
 
   const updateSticker = useCallback((stickerId: number, delta: number) => {
-    // Update state immediately using functional form so rapid clicks stack correctly
+    // Compute new qty from pendingQty (tracks latest intent, not stale state)
+    const current = pendingQty.current[stickerId] ?? 0;
+    const newQty = Math.max(0, current + delta);
+    pendingQty.current[stickerId] = newQty;
+
+    // Update UI immediately
     setCollection(prev => {
-      const current = prev[stickerId] || 0;
-      const newQty = Math.max(0, current + delta);
       const next = { ...prev };
       if (newQty === 0) delete next[stickerId];
       else next[stickerId] = newQty;
       return next;
     });
 
-    // Debounce the API call: each sticker has its own timer
+    // Debounce the API save — only fires once after rapid clicks settle
     clearTimeout(saveTimers.current[stickerId]);
     setSaving(prev => new Set(prev).add(stickerId));
 
     saveTimers.current[stickerId] = setTimeout(async () => {
-      const qty = collectionRef.current[stickerId] || 0;
+      const qty = pendingQty.current[stickerId] ?? 0;
       try {
         await api.updateSticker(stickerId, qty);
       } catch {
-        // Revert to server state on error by re-fetching
         api.getMyCollection().then(c => {
           setCollection(c);
-          collectionRef.current = c;
+          Object.assign(pendingQty.current, c);
         });
       } finally {
         setSaving(prev => { const n = new Set(prev); n.delete(stickerId); return n; });
       }
-    }, 600);
+    }, 800);
   }, []);
 
   // Stickers of the currently selected team (ignoring text filter/status filter)
