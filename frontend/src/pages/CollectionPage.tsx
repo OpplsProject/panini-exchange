@@ -14,6 +14,7 @@ export default function CollectionPage() {
   const [selectedTeam, setSelectedTeam] = useState<string>('all');
   const [filter, setFilter] = useState<Filter>('todos');
   const [saving, setSaving] = useState<Set<number>>(new Set());
+  const [bulkSaving, setBulkSaving] = useState(false);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -57,6 +58,68 @@ export default function CollectionPage() {
       });
     }
   }, [collection]);
+
+  // Stickers of the currently selected team (ignoring text filter/status filter)
+  const teamStickersAll = selectedTeam === 'all'
+    ? []
+    : stickers.filter(s => s.team === selectedTeam);
+
+  const allSelected = teamStickersAll.length > 0 &&
+    teamStickersAll.every(s => (collection[s.id] || 0) > 0);
+
+  async function selectAll() {
+    if (teamStickersAll.length === 0) return;
+    setBulkSaving(true);
+    const updates: Record<number, number> = {};
+    teamStickersAll.forEach(s => { if ((collection[s.id] || 0) === 0) updates[s.id] = 1; });
+    if (Object.keys(updates).length === 0) { setBulkSaving(false); return; }
+    setCollection(prev => ({ ...prev, ...updates }));
+    try {
+      await fetch(`/api/users/me/stickers`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ collection: updates }),
+      });
+    } catch {
+      setCollection(prev => {
+        const next = { ...prev };
+        Object.keys(updates).forEach(id => delete next[Number(id)]);
+        return next;
+      });
+    } finally {
+      setBulkSaving(false);
+    }
+  }
+
+  async function deselectAll() {
+    if (teamStickersAll.length === 0) return;
+    setBulkSaving(true);
+    const updates: Record<number, number> = {};
+    teamStickersAll.forEach(s => { updates[s.id] = 0; });
+    const prev_col = { ...collection };
+    setCollection(prev => {
+      const next = { ...prev };
+      teamStickersAll.forEach(s => delete next[s.id]);
+      return next;
+    });
+    try {
+      await fetch(`/api/users/me/stickers`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ collection: updates }),
+      });
+    } catch {
+      setCollection(prev_col);
+    } finally {
+      setBulkSaving(false);
+    }
+  }
 
   const filteredStickers = stickers.filter(s => {
     const qty = collection[s.id] || 0;
@@ -184,11 +247,39 @@ export default function CollectionPage() {
         </div>
       </div>
 
-      {/* Sticker Count */}
-      <p className="text-sm text-gray-500 mb-3">
-        Mostrando {filteredStickers.length} figurita{filteredStickers.length !== 1 ? 's' : ''}
-        {selectedTeam !== 'all' && ` de ${teams.find(t => t.id === selectedTeam)?.name ?? 'Especiales'}`}
-      </p>
+      {/* Select all bar — only when a team is selected */}
+      {selectedTeam !== 'all' && (
+        <div className="bg-white rounded-xl shadow-sm px-4 py-3 mb-3 flex items-center justify-between gap-3">
+          <p className="text-sm text-gray-500">
+            {filteredStickers.length} figurita{filteredStickers.length !== 1 ? 's' : ''}
+            {' · '}
+            {teamStickersAll.filter(s => (collection[s.id] || 0) > 0).length}/{teamStickersAll.length} del equipo
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={selectAll}
+              disabled={bulkSaving || allSelected}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition-colors"
+            >
+              {bulkSaving ? '...' : '✓ Seleccionar todas'}
+            </button>
+            <button
+              onClick={deselectAll}
+              disabled={bulkSaving || teamStickersAll.every(s => (collection[s.id] || 0) === 0)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-200 hover:bg-red-100 hover:text-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 text-xs font-bold rounded-lg transition-colors"
+            >
+              ✕ Deseleccionar todas
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Sticker Count — only when showing all teams */}
+      {selectedTeam === 'all' && (
+        <p className="text-sm text-gray-500 mb-3">
+          Mostrando {filteredStickers.length} figurita{filteredStickers.length !== 1 ? 's' : ''}
+        </p>
+      )}
 
       {/* Sticker Grid */}
       {filteredStickers.length === 0 ? (
