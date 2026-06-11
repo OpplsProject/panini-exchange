@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../api';
 import type { Sticker, Team, Collection } from '../types';
 import StickerCard from '../components/StickerCard';
@@ -17,47 +17,54 @@ export default function CollectionPage() {
   const [bulkSaving, setBulkSaving] = useState(false);
   const [search, setSearch] = useState('');
 
+  // Refs for debounced saves — avoids race conditions on rapid clicks
+  const collectionRef = useRef<Collection>({});
+  const saveTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+
+  useEffect(() => { collectionRef.current = collection; }, [collection]);
+
   useEffect(() => {
     Promise.all([api.getStickers(), api.getTeams(), api.getMyCollection()])
       .then(([s, t, c]) => {
         setStickers(s);
         setTeams(t);
         setCollection(c);
+        collectionRef.current = c;
       })
       .catch(() => setError('Error al cargar los datos'))
       .finally(() => setLoading(false));
   }, []);
 
-  const updateSticker = useCallback(async (stickerId: number, delta: number) => {
-    const current = collection[stickerId] || 0;
-    const newQty = Math.max(0, current + delta);
-
+  const updateSticker = useCallback((stickerId: number, delta: number) => {
+    // Update state immediately using functional form so rapid clicks stack correctly
     setCollection(prev => {
+      const current = prev[stickerId] || 0;
+      const newQty = Math.max(0, current + delta);
       const next = { ...prev };
       if (newQty === 0) delete next[stickerId];
       else next[stickerId] = newQty;
       return next;
     });
 
+    // Debounce the API call: each sticker has its own timer
+    clearTimeout(saveTimers.current[stickerId]);
     setSaving(prev => new Set(prev).add(stickerId));
-    try {
-      await api.updateSticker(stickerId, newQty);
-    } catch {
-      // Revert on error
-      setCollection(prev => {
-        const next = { ...prev };
-        if (current === 0) delete next[stickerId];
-        else next[stickerId] = current;
-        return next;
-      });
-    } finally {
-      setSaving(prev => {
-        const next = new Set(prev);
-        next.delete(stickerId);
-        return next;
-      });
-    }
-  }, [collection]);
+
+    saveTimers.current[stickerId] = setTimeout(async () => {
+      const qty = collectionRef.current[stickerId] || 0;
+      try {
+        await api.updateSticker(stickerId, qty);
+      } catch {
+        // Revert to server state on error by re-fetching
+        api.getMyCollection().then(c => {
+          setCollection(c);
+          collectionRef.current = c;
+        });
+      } finally {
+        setSaving(prev => { const n = new Set(prev); n.delete(stickerId); return n; });
+      }
+    }, 600);
+  }, []);
 
   // Stickers of the currently selected team (ignoring text filter/status filter)
   const teamStickersAll = selectedTeam === 'all'
